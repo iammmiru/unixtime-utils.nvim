@@ -3,25 +3,29 @@ local CsvVirtualText = {}
 local ns_id = vim.api.nvim_create_namespace("csv-virtual-text")
 
 local config = {
-  priority = 0,      -- lower draws first
+  priority = 0, -- lower draws first
   highlight = "Comment",
 }
 
 local function merge_user_globals()
   local function apply(tbl)
-    if type(tbl) ~= 'table' then return end
-    for k,v in pairs(tbl) do
-      if k == 'priority' then
-        if type(v) == 'number' and v >= 0 then config.priority = v end
+    if type(tbl) ~= "table" then
+      return
+    end
+    for k, v in pairs(tbl) do
+      if k == "priority" then
+        if type(v) == "number" and v >= 0 then
+          config.priority = v
+        end
       else
         config[k] = v
       end
     end
   end
-  if vim.g.unixtime_utils and type(vim.g.unixtime_utils.csv)=='table' then
+  if vim.g.unixtime_utils and type(vim.g.unixtime_utils.csv) == "table" then
     apply(vim.g.unixtime_utils.csv)
   end
-  if type(vim.g.unixtime_utils_csv)=='table' then
+  if type(vim.g.unixtime_utils_csv) == "table" then
     apply(vim.g.unixtime_utils_csv)
   end
 end

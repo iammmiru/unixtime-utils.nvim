@@ -3,6 +3,7 @@
 A Neovim plugin collection for working with Unix timestamps.
 
 ## Features
+
 ### Virtual text on CSV files
 - Detects a column named `timestamp` (case-insensitive) in the CSV header.
 - For each row, if the `timestamp` column contains a numeric Unix timestamp (milliseconds), displays a human-readable date/time as virtual text after the timestamp field.
