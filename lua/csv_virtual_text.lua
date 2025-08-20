@@ -2,6 +2,32 @@ local CsvVirtualText = {}
 
 local ns_id = vim.api.nvim_create_namespace("csv-virtual-text")
 
+local config = {
+  priority = 0,      -- lower draws first
+  highlight = "Comment",
+}
+
+local function merge_user_globals()
+  local function apply(tbl)
+    if type(tbl) ~= 'table' then return end
+    for k,v in pairs(tbl) do
+      if k == 'priority' then
+        if type(v) == 'number' and v >= 0 then config.priority = v end
+      else
+        config[k] = v
+      end
+    end
+  end
+  if vim.g.unixtime_utils and type(vim.g.unixtime_utils.csv)=='table' then
+    apply(vim.g.unixtime_utils.csv)
+  end
+  if type(vim.g.unixtime_utils_csv)=='table' then
+    apply(vim.g.unixtime_utils_csv)
+  end
+end
+
+merge_user_globals()
+
 local function ms_to_human(ms)
   local sec = math.floor(ms / 1000)
   return os.date("%Y-%m-%d %H:%M:%S", sec)
@@ -42,8 +68,9 @@ function CsvVirtualText.add_virtual_text(bufnr)
         virt_col = line_len
       end
       vim.api.nvim_buf_set_extmark(bufnr, ns_id, i - 1, virt_col, {
-        virt_text = { { " ⏰ " .. human, "Comment" } },
+        virt_text = { { " ⏰ " .. human, config.highlight } },
         virt_text_pos = "eol",
+        priority = config.priority,
       })
     end
   end
