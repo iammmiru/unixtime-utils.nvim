@@ -1,4 +1,4 @@
-local CsvVirtualText = {}
+local Csv = {}
 
 local ns_id = vim.api.nvim_create_namespace("csv-virtual-text")
 
@@ -37,7 +37,7 @@ local function ms_to_human(ms)
   return os.date("%Y-%m-%d %H:%M:%S", sec)
 end
 
-function CsvVirtualText.add_virtual_text(bufnr)
+function Csv.add_virtual_text(bufnr)
   vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
   local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
   if #lines < 2 then
@@ -80,4 +80,4 @@ function CsvVirtualText.add_virtual_text(bufnr)
   end
 end
 
-return CsvVirtualText
+return Csv

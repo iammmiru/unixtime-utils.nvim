@@ -1,11 +1,10 @@
-local M = {}
+local Cursor = {}
 
 local ns_id = vim.api.nvim_create_namespace("unixtime-on-demand")
 
 local config = {
   format = "%Y-%m-%d %H:%M:%S", -- os.date format
   highlight = "Comment", -- highlight group for virtual text
-  clear_previous = true, -- (deprecated) if persist=false, clear all previous annotations
   persist = true, -- keep annotations after moving cursor; pressing again updates only that line
   keymap = "<leader>tt", -- default keymap
   accept_seconds = true, -- allow 10-digit unix seconds
@@ -25,8 +24,6 @@ local function parse_number_under_cursor()
     return nil
   end
 
-  -- We treat 'col' (0-based from nvim_win_get_cursor returns 1-based column?)
-  -- nvim_win_get_cursor returns (row, col) with col 0-based. Keep as-is.
   -- Scan all digit runs and find one that covers cursor position (inclusive) or where cursor is just after the run.
   local target
   for start_idx, digits, after_idx in line:gmatch("()(%d+)()") do
@@ -73,7 +70,7 @@ local function normalize_epoch(num_str)
   return nil
 end
 
-function M.show_at_cursor()
+function Cursor.show_at_cursor()
   vim.schedule(function()
     local data = parse_number_under_cursor()
     if not data then
@@ -95,16 +92,8 @@ function M.show_at_cursor()
         pcall(vim.api.nvim_buf_del_extmark, bufnr, ns_id, existing)
       end
     else
-      if config.clear_previous then
-        vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
-        state.marks_by_buf[bufnr] = {}
-      else
-        -- clear only this line to prevent duplicate stacking
-        local existing = state.marks_by_buf[bufnr][line]
-        if existing then
-          pcall(vim.api.nvim_buf_del_extmark, bufnr, ns_id, existing)
-        end
-      end
+      vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
+      state.marks_by_buf[bufnr] = {}
     end
 
     local col = #data.line
@@ -117,7 +106,7 @@ function M.show_at_cursor()
   end)
 end
 
-function M.clear()
+function Cursor.clear()
   local bufnr = vim.api.nvim_get_current_buf()
   local row = vim.api.nvim_win_get_cursor(0)[1] - 1
   local marks = state.marks_by_buf[bufnr]
@@ -127,7 +116,7 @@ function M.clear()
   end
 end
 
-function M.clear_all()
+function Cursor.clear_all()
   local bufnr = vim.api.nvim_get_current_buf()
   vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
   state.marks_by_buf[bufnr] = {}
@@ -178,21 +167,21 @@ local function create_keymaps()
   end
   if config.keymap then
     vim.keymap.set("n", config.keymap, function()
-      require("unixtime_utils.cursor").show_at_cursor()
+      Cursor.show_at_cursor()
     end, { desc = "Show human-readable time for unix timestamp under cursor" })
   end
   if config.clear_keymap then
     vim.keymap.set("n", config.clear_keymap, function()
-      require("unixtime_utils.cursor").clear()
+      Cursor.clear()
     end, { desc = "Clear on-demand unixtime annotation on current line" })
   end
   if config.clear_all_keymap then
     vim.keymap.set("n", config.clear_all_keymap, function()
-      require("unixtime_utils.cursor").clear_all()
+      Cursor.clear_all()
     end, { desc = "Clear all on-demand unixtime annotations in buffer" })
   end
   created_keymaps = true
 end
 create_keymaps()
 
-return M
+return Cursor
