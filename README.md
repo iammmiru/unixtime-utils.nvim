@@ -83,9 +83,9 @@ The `timezone` setting is honored by:
 - CSV virtual text annotations
 
 Displayed human times:
-- Append `Z` when timezone is `UTC`
-- Append `+HHMM` / `-HHMM` when fixed offset is used
-- Local omits suffix
+- Local timezone: no suffix
+- UTC: appended suffix ` UTC+0000`
+- Fixed offset: appended suffix ` UTC±HHMM` (e.g. ` UTC+0530`, ` UTC-0500`)
 
 ### Runtime API
 Change timezone at runtime (affects all modules):

@@ -45,23 +45,30 @@ end
 function Timezone.format_epoch(epoch_seconds, fmt)
   fmt = fmt or "%Y-%m-%d %H:%M:%S"
   local tz = config.timezone
+  local base = os.date(fmt, epoch_seconds)
   if tz == "local" then
-    return os.date(fmt, epoch_seconds)
+    return base
   end
   local local_offset = compute_local_utc_offset(epoch_seconds)
-  local off = 0
-  if tz == "UTC" then
-    off = 0
-  else
+  local target_off = 0
+  if tz ~= "UTC" then
     local fixed = parse_offset(tz)
     if fixed then
-      off = fixed
+      target_off = fixed
     else
-      return os.date(fmt, epoch_seconds) -- fallback
+      return base -- fallback invalid
     end
   end
-  local adjusted = epoch_seconds + (local_offset - off)
-  return os.date(fmt, adjusted)
+  local adjusted = epoch_seconds + (local_offset - target_off)
+  local shifted = os.date(fmt, adjusted)
+  if tz == "UTC" or target_off == 0 then
+    return shifted .. " UTC+0000"
+  end
+  local sign = target_off < 0 and "-" or "+"
+  local abssec = math.abs(target_off)
+  local hh = math.floor(abssec / 3600)
+  local mm = math.floor((abssec % 3600) / 60)
+  return string.format("%s UTC%s%02d%02d", shifted, sign, hh, mm)
 end
 
 function Timezone.resolve_epoch(d, m, y, H, M, S)

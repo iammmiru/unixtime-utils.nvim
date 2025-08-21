@@ -74,14 +74,7 @@ function Cursor.show_at_cursor()
     end
     local timezone = require("unixtime_utils.timezone")
     local tz = timezone.get_timezone()
-    local human = timezone.format_epoch(epoch, default_config.format, tz)
-    if tz ~= "local" then
-      if tz == "UTC" then
-        human = human .. "Z"
-      elseif tz:match("^[+-]%d%d%d%d$") then
-        human = human .. " " .. tz
-      end
-    end
+    local human = timezone.format_epoch(epoch, default_config.format)
     local bufnr = data.bufnr
     local line = data.row
 
