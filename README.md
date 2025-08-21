@@ -92,6 +92,17 @@ vim.g.unixtime_utils_convert = {
 vim.g.unixtime_utils_config = { timezone = 'UTC' }
 ```
 
+### Timezone sharing across modules
+The `timezone` setting (in `convert` or via `vim.g.unixtime_utils_convert.timezone` / `vim.g.unixtime_utils_config.timezone`) is now honored by:
+- Date->Unix popup conversion
+- On-demand cursor annotations
+- CSV virtual text annotations
+
+Displayed human times:
+- Append `Z` when timezone is `UTC`
+- Append `+HHMM` / `-HHMM` when fixed offset is used
+- Local omits suffix
+
 ### Runtime API
 Change timezone at runtime (affects next popup):
 ```lua

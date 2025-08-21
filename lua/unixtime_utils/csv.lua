@@ -34,7 +34,17 @@ merge_user_globals()
 
 local function ms_to_human(ms)
   local sec = math.floor(ms / 1000)
-  return os.date("%Y-%m-%d %H:%M:%S", sec)
+  local tzmod = require('unixtime_utils.timezone')
+  local tz = tzmod.get_timezone()
+  local human = tzmod.format_epoch(sec, '%Y-%m-%d %H:%M:%S', tz)
+  if tz ~= 'local' then
+    if tz == 'UTC' then
+      human = human .. 'Z'
+    elseif tz:match('^[+-]%d%d%d%d$') then
+      human = human .. ' ' .. tz
+    end
+  end
+  return human
 end
 
 function Csv.add_virtual_text(bufnr)
