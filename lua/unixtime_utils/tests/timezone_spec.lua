@@ -1,0 +1,57 @@
+---@diagnostic disable: assign-type-mismatch
+local tz = require("unixtime_utils.timezone")
+local convert = require("unixtime_utils.convert")
+local config = require("unixtime_utils.config")
+
+local BASE_MS_UTC = 1736899200
+local TEST_DATE = "15.01.2025 00:00:00"
+
+describe("timezone.resolve_epoch", function()
+  it("resolves local unchanged when timezone=local", function()
+    config.set_timezone("local")
+    local d, m, y, H, M, S = convert.parse_date(TEST_DATE)
+    local local_epoch = os.time({ year = y, month = m, day = d, hour = H, min = M, sec = S })
+    local resolved = tz.resolve_epoch(d, m, y, H, M, S)
+    assert.equals(local_epoch, resolved)
+  end)
+
+  it("resolves UTC to unix epoch", function()
+    config.set_timezone("UTC")
+    local d, m, y, H, M, S = convert.parse_date(TEST_DATE)
+    local resolved = tz.resolve_epoch(d, m, y, H, M, S)
+    assert.equals(BASE_MS_UTC, resolved)
+  end)
+
+  it("resolves fixed +0530 offset", function()
+    config.set_timezone("+0530")
+    local d, m, y, H, M, S = convert.parse_date(TEST_DATE)
+    local resolved = tz.resolve_epoch(d, m, y, H, M, S)
+    assert.equals(BASE_MS_UTC + 60 * 60 * 5 + 60 * 30, resolved)
+  end)
+end)
+
+describe("timezone.format_epoch", function()
+  it("formats local without suffix", function()
+    config.set_timezone("local")
+    local d, m, y, H, M, S = convert.parse_date(TEST_DATE)
+    local local_epoch = os.time({ year = y, month = m, day = d, hour = H, min = M, sec = S })
+    local out = tz.format_epoch(local_epoch, "%Y-%m-%d %H:%M:%S")
+    assert.matches("^2025%-01%-15 00:00:00$", out)
+  end)
+
+  it("formats UTC with UTC+0000 suffix", function()
+    config.set_timezone("UTC")
+    local d, m, y, H, M, S = convert.parse_date(TEST_DATE)
+    local local_epoch = os.time({ year = y, month = m, day = d, hour = H, min = M, sec = S })
+    local out = tz.format_epoch(local_epoch, "%Y-%m-%d %H:%M:%S")
+    assert.matches("UTC%+0000$", out)
+  end)
+
+  it("formats +0530 with proper suffix", function()
+    config.set_timezone("+0530")
+    local d, m, y, H, M, S = convert.parse_date(TEST_DATE)
+    local local_epoch = os.time({ year = y, month = m, day = d, hour = H, min = M, sec = S })
+    local out = tz.format_epoch(local_epoch, "%Y-%m-%d %H:%M:%S")
+    assert.matches("UTC%+0530$", out)
+  end)
+end)

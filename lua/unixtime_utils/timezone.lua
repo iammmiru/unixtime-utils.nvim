@@ -1,21 +1,6 @@
 local Timezone = {}
 local config = require("unixtime_utils.config")
 
-local function validate_timezone(tz)
-  if tz == "local" or tz == "UTC" then
-    return true
-  end
-  if type(tz) == 'string' and tz:match("^[+-]%d%d%d%d$") then
-    local _, hh, mm = tz:match("^([+-])(%d%d)(%d%d)$")
-    hh, mm = tonumber(hh), tonumber(mm)
-    if hh <= 23 and mm <= 59 then
-      return true
-    end
-  end
-  vim.notify("Invalid timezone: " .. tostring(tz) .. " (keeping previous)", vim.log.levels.ERROR)
-  return false
-end
-
 local function parse_offset(tz)
   local sign, hh, mm = tz:match("^([+-])(%d%d)(%d%d)$")
   if not sign then
@@ -94,14 +79,6 @@ end
 
 function Timezone.get_timezone()
   return config.timezone
-end
-
-function Timezone.set_timezone(tz)
-  if validate_timezone(tz) then
-    config.set('timezone', tz)
-    return true
-  end
-  return false
 end
 
 return Timezone

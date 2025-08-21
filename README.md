@@ -21,9 +21,9 @@ A Neovim plugin collection for working with Unix timestamps.
 - Press <leader>tt while the cursor is on (or just after) a Unix timestamp (10 or 13 digits) to display a human-readable time at end of line.
 - Supports both seconds (10 digits) and milliseconds (13 digits) epochs.
 - Persistent by default: annotations stay after moving the cursor; re-trigger on the same line updates that line.
-- To make it ephemeral (only one annotation at a time), set `persist = false` (then `clear_previous` governs whether all previous are cleared or just that line).
+- To make it ephemeral (only one annotation at a time), set `persist = false`. 
 
-## Installation (updated)
+## Installation
 
 
 **With a plugin manager (e.g., lazy.nvim):**
@@ -46,7 +46,7 @@ Use the Lua setup API. The on-demand feature auto-initializes with default keyma
 - Place cursor on a Unix timestamp (seconds or milliseconds) in any buffer and press <leader>tt.
 - A human-readable date/time appears at the end of the line.
 - <leader>tr clears the annotation on the current line. <leader>tR clears all annotations in the buffer.
-- Configurable via setup() or direct config table mutation.
+- Configurable via setup().
 
 ### Configuration
 Configure early (e.g. in lazy.nvim spec) with:
@@ -56,7 +56,7 @@ require('unixtime_utils').setup({
   convert = {
     keymap = '<leader>tu',
     prompt = 'Enter date (DD.MM.YYYY [HH:MM[:SS]]):',
-    popup = { highlight = 'UnixTimeUtilsFloat', background = nil, winblend = 0, show_timezone = true },
+    popup = { highlight = 'UnixTimeUtilsFloat', background = nil, winblend = 0 },
   },
   cursor = {
     format = '%Y-%m-%d %H:%M:%S',
@@ -96,7 +96,8 @@ Lua:
 ```lua
 local tz = require('unixtime_utils.timezone')
 tz.set_timezone('UTC')
-tz.set_timezone('+0530')
+-- or
+-- tz.set_timezone('+0530')
 print(tz.get_timezone())
 ```
 
@@ -113,6 +114,21 @@ text.
 
 ## Example Data
 See the `example_csvs/` directory for sample CSV files.
+
+## Running Tests
+
+This plugin uses plenary.nvim's busted harness for tests.
+
+Prerequisites:
+- Neovim with plenary.nvim installed and on your runtimepath.
+
+Run all tests headlessly from plugin root:
+
+```sh
+nvim --headless -c "PlenaryBustedDirectory lua/unixtime_utils/tests { minimal_init = 'lua/unixtime_utils/tests/minimal_init.lua' }" -c qa
+```
+
+You should see output summarizing passed/failed specs.
 
 ## License
 MIT

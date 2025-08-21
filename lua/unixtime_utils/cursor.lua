@@ -45,22 +45,7 @@ local function parse_number_under_cursor()
   }
 end
 
-local function normalize_epoch(num_str)
-  if #num_str == 13 and default_config.accept_milliseconds then
-    local ok, val = pcall(tonumber, num_str)
-    if not ok or not val then
-      return nil
-    end
-    return math.floor(val / 1000)
-  elseif #num_str == 10 and default_config.accept_seconds then
-    local ok, val = pcall(tonumber, num_str)
-    if not ok or not val then
-      return nil
-    end
-    return val
-  end
-  return nil
-end
+local util = require("unixtime_utils.util")
 
 function Cursor.show_at_cursor()
   vim.schedule(function()
@@ -68,12 +53,11 @@ function Cursor.show_at_cursor()
     if not data then
       return
     end
-    local epoch = normalize_epoch(data.text)
+    local epoch = util.normalize_epoch(data.text, default_config.accept_seconds, default_config.accept_milliseconds)
     if not epoch then
       return
     end
     local timezone = require("unixtime_utils.timezone")
-    local tz = timezone.get_timezone()
     local human = timezone.format_epoch(epoch, default_config.format)
     local bufnr = data.bufnr
     local line = data.row
@@ -92,7 +76,7 @@ function Cursor.show_at_cursor()
 
     local col = #data.line
     local id = vim.api.nvim_buf_set_extmark(bufnr, ns_id, line, col, {
-      virt_text = { { " ⏰ " .. human, default_config.highlight } },
+      virt_text = util.build_virt_text(human, default_config.highlight),
       virt_text_pos = "eol",
       priority = default_config.priority,
     })
@@ -115,7 +99,6 @@ function Cursor.clear_all()
   vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
   state.marks_by_buf[bufnr] = {}
 end
-
 
 -- define keymaps immediately (no setup function anymore)
 local created_keymaps = false

@@ -3,11 +3,8 @@ local Csv = {}
 local ns_id = vim.api.nvim_create_namespace("csv-virtual-text")
 local default_config = require("unixtime_utils.config").csv
 
-local function ms_to_human(ms)
-  local sec = math.floor(ms / 1000)
-  local tzmod = require("unixtime_utils.timezone")
-  return tzmod.format_epoch(sec, "%Y-%m-%d %H:%M:%S")
-end
+local tzmod = require("unixtime_utils.timezone")
+local util = require("unixtime_utils.util")
 
 function Csv.add_virtual_text(bufnr)
   vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
@@ -31,7 +28,9 @@ function Csv.add_virtual_text(bufnr)
     local fields = vim.split(lines[i], ",")
     local ts = fields[col_idx]
     if ts and ts:match("^%d+$") then
-      local human = ms_to_human(tonumber(ts))
+      local num = tonumber(ts)
+      local sec = math.floor(num / 1000)
+      local human = tzmod.format_epoch(sec, "%Y-%m-%d %H:%M:%S")
       -- Find the start column of the timestamp field
       local virt_col = 0
       for j = 1, col_idx - 1 do
@@ -44,7 +43,7 @@ function Csv.add_virtual_text(bufnr)
         virt_col = line_len
       end
       vim.api.nvim_buf_set_extmark(bufnr, ns_id, i - 1, virt_col, {
-        virt_text = { { " ⏰ " .. human, default_config.highlight } },
+        virt_text = util.build_virt_text(human, default_config.highlight),
         virt_text_pos = "eol",
         priority = default_config.priority,
       })

@@ -2,7 +2,6 @@
 ---@field highlight string Highlight group for popup window border/text
 ---@field background string|nil Hex color (e.g. "#1e1e2e") to create highlight dynamically
 ---@field winblend integer Winblend transparency (0-100)
----@field show_timezone boolean Show active timezone in popup
 
 ---@class UnixTimeUtilsConvertConfig
 ---@field keymap string Keymap to trigger date->Unix conversion
@@ -35,10 +34,10 @@
 ---@field cursor UnixTimeUtilsCursorConfig
 
 ---@class UnixTimeUtilsConfigModule: UnixTimeUtilsUserConfig
----@field _listeners (fun(new_timezone:string))[]
 ---@field setup fun(opts:UnixTimeUtilsUserConfig|nil)
----@field set fun(key:string, value:any)
----@field on_change fun(cb:fun(new_timezone:string))
+---@field set_timezone fun(timezone:string): boolean
+
+local util = require("unixtime_utils.util")
 
 -- config table (methods annotated after definition)
 local M = {
@@ -51,7 +50,6 @@ local M = {
       highlight = "UnixTimeUtilsFloat",
       background = nil, -- hex like '#1e1e2e' to define highlight dynamically
       winblend = 0,
-      show_timezone = true,
     },
   },
   csv = {
@@ -71,44 +69,20 @@ local M = {
     accept_milliseconds = true, -- allow 13-digit unix milliseconds
     priority = 0, -- extmark priority (lower draws first)
   },
-  _listeners = {},
 }
-
-local function shallow_merge(dest, src)
-  if not src then return dest end
-  for k,v in pairs(src) do
-    if type(v) == 'table' and type(dest[k]) == 'table' then
-      for k2,v2 in pairs(v) do
-        dest[k][k2] = v2
-      end
-    else
-      dest[k] = v
-    end
-  end
-  return dest
-end
 
 ---@param opts UnixTimeUtilsUserConfig|nil
 function M.setup(opts)
-  if opts then
-    shallow_merge(M, opts)
-  end
+  M = vim.tbl_deep_extend("force", M, opts or {})
 end
 
----@param key string
----@param value any
-function M.set(key, value)
-  if key == 'timezone' then
-    M.timezone = value
-    for _, cb in ipairs(M._listeners) do pcall(cb, value) end
-  else
-    M[key] = value
+---@param timezone string
+function M.set_timezone(timezone)
+  if util.validate_timezone(timezone) then
+    M.timezone = timezone
+    return true
   end
-end
-
----@param cb fun(new_timezone:string)
-function M.on_change(cb)
-  table.insert(M._listeners, cb)
+  return false
 end
 
 ---@cast M UnixTimeUtilsConfigModule
