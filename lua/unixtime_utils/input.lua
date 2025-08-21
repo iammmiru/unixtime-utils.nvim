@@ -23,15 +23,15 @@ function M.open(opts)
   if opts.popup_config then
     local pc = opts.popup_config
     if pc.highlight then
-      pcall(vim.api.nvim_win_set_option, win, 'winhl', 'Normal:'..pc.highlight..',NormalNC:'..pc.highlight)
+      pcall(vim.api.nvim_win_set_option, win, "winhl", "Normal:" .. pc.highlight .. ",NormalNC:" .. pc.highlight)
     end
-    if type(pc.winblend) == 'number' then
-      pcall(vim.api.nvim_win_set_option, win, 'winblend', pc.winblend)
+    if type(pc.winblend) == "number" then
+      pcall(vim.api.nvim_win_set_option, win, "winblend", pc.winblend)
     end
   end
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, { prompt, "" })
   vim.api.nvim_win_set_cursor(win, { 2, 0 })
-  vim.cmd('startinsert')
+  vim.cmd("startinsert")
 
   local function get_line()
     return (vim.api.nvim_buf_get_lines(buf, 1, 2, false)[1] or ""):gsub("^%s+", ""):gsub("%s+$", "")
@@ -40,13 +40,19 @@ function M.open(opts)
     if vim.api.nvim_win_is_valid(win) then
       vim.api.nvim_win_close(win, true)
     end
-    if opts.on_close then opts.on_close(val) end
-    vim.cmd('stopinsert')
+    if opts.on_close then
+      opts.on_close(val)
+    end
+    vim.cmd("stopinsert")
   end
 
   -- Normal mode mappings
-  vim.keymap.set("n", "q", function() close_with(nil) end, { buffer = buf, nowait = true })
-  vim.keymap.set("n", "<Esc>", function() close_with(nil) end, { buffer = buf, nowait = true })
+  vim.keymap.set("n", "q", function()
+    close_with(nil)
+  end, { buffer = buf, nowait = true })
+  vim.keymap.set("n", "<Esc>", function()
+    close_with(nil)
+  end, { buffer = buf, nowait = true })
   vim.keymap.set("n", "<CR>", function()
     local line = get_line()
     close_with(line ~= "" and line or nil)

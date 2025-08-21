@@ -55,11 +55,15 @@ end
 local function normalize_epoch(num_str)
   if #num_str == 13 and config.accept_milliseconds then
     local ok, val = pcall(tonumber, num_str)
-    if not ok or not val then return nil end
+    if not ok or not val then
+      return nil
+    end
     return math.floor(val / 1000)
   elseif #num_str == 10 and config.accept_seconds then
     local ok, val = pcall(tonumber, num_str)
-    if not ok or not val then return nil end
+    if not ok or not val then
+      return nil
+    end
     return val
   end
   return nil
@@ -75,14 +79,14 @@ function Cursor.show_at_cursor()
     if not epoch then
       return
     end
-    local tzmod = require('unixtime_utils.timezone')
+    local tzmod = require("unixtime_utils.timezone")
     local tz = tzmod.get_timezone()
     local human = tzmod.format_epoch(epoch, config.format, tz)
-    if tz ~= 'local' then
-      if tz == 'UTC' then
-        human = human .. 'Z'
-      elseif tz:match('^[+-]%d%d%d%d$') then
-        human = human .. ' ' .. tz
+    if tz ~= "local" then
+      if tz == "UTC" then
+        human = human .. "Z"
+      elseif tz:match("^[+-]%d%d%d%d$") then
+        human = human .. " " .. tz
       end
     end
     local bufnr = data.bufnr
