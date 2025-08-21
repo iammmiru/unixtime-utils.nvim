@@ -4,6 +4,14 @@ A Neovim plugin collection for working with Unix timestamps.
 
 ## Features
 
+### Popup conversion from human date to Unix ms
+- Press <leader>tu to open an input popup.
+- Enter a date in the form `DD.MM.YYYY[ HH:MM[:SS]]` (4-digit year).
+  - Examples: `21.01.1990`, `21.01.1990 12:34`, `21.01.1990 12:34:56`
+  - Missing time defaults to `00:00:00`; missing seconds default to `:00`.
+- Type the date and press Enter to convert to Unix time in milliseconds, copy it to the system clipboard (`+` register), and show a notification including the configured timezone.
+
+
 ### Virtual text on CSV files
 - Detects a column named `timestamp` (case-insensitive) in the CSV header.
 - For each row, if the `timestamp` column contains a numeric Unix timestamp (milliseconds), displays a human-readable date/time as virtual text after the timestamp field.
@@ -52,16 +60,49 @@ vim.g.unixtime_utils = {
     priority = 0,
     highlight = 'Comment',
   },
+  convert = {
+    keymap = '<leader>tu',
+    timezone = 'local', -- 'local' | 'UTC' | '+HHMM' | '-HHMM'
+    prompt = 'Enter date (DD.MM.YYYY [HH:MM[:SS]]):',
+    popup = {
+      highlight = 'UnixtimeUtilsFloat',
+      background = nil, -- e.g. '#1e1e2e' to define custom bg
+      winblend = 0,
+      show_timezone = true,
+    },
+  },
 }
 
 -- Or per-module flat tables
 vim.g.unixtime_utils_on_demand = {
   priority = 0,
-  keymap = '<leader>tt',          -- set to false/nil to disable
-  clear_keymap = '<leader>tr',     -- set to false/nil to disable
-  clear_all_keymap = '<leader>tR', -- set to false/nil to disable
+  keymap = '<leader>tt',
+  clear_keymap = '<leader>tr',
+  clear_all_keymap = '<leader>tR',
 }
 vim.g.unixtime_utils_csv = { priority = 0 }
+vim.g.unixtime_utils_convert = {
+  keymap = '<leader>tu',
+  timezone = 'UTC',
+    popup = { background = '#1e1e2e', winblend = 10 }, -- highlight auto-applied if specified
+
+}
+
+-- Alternative unified simple config (timezone override only)
+vim.g.unixtime_utils_config = { timezone = 'UTC' }
+```
+
+### Runtime API
+Change timezone at runtime (affects next popup):
+```lua
+require('unixtime_utils.convert').set_timezone('UTC')
+-- or offset
+require('unixtime_utils.convert').set_timezone('+0530')
+print(require('unixtime_utils.convert').get_timezone())
+```
+Reload config from globals (if you modified vim.g after load):
+```lua
+require('unixtime_utils.convert').reload_config()
 ```
 
 ## Example
