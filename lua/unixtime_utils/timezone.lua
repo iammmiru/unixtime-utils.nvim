@@ -1,21 +1,19 @@
-local M = {}
+local Timezone = {}
+local config = require("unixtime_utils.config")
 
--- Derive global timezone preference from any of the config tables.
--- Order of precedence: explicit module config (passed in), vim.g.unixtime_utils.convert.timezone,
--- vim.g.unixtime_utils_config.timezone, fallback 'local'.
-
-local function extract_global_timezone()
-  local tz
-  if vim.g.unixtime_utils and type(vim.g.unixtime_utils.convert) == "table" then
-    tz = vim.g.unixtime_utils.convert.timezone or tz
+local function validate_timezone(tz)
+  if tz == "local" or tz == "UTC" then
+    return true
   end
-  if not tz and type(vim.g.unixtime_utils_convert) == "table" then
-    tz = vim.g.unixtime_utils_convert.timezone or tz
+  if type(tz) == 'string' and tz:match("^[+-]%d%d%d%d$") then
+    local _, hh, mm = tz:match("^([+-])(%d%d)(%d%d)$")
+    hh, mm = tonumber(hh), tonumber(mm)
+    if hh <= 23 and mm <= 59 then
+      return true
+    end
   end
-  if not tz and vim.g.unixtime_utils_config and type(vim.g.unixtime_utils_config) == "table" then
-    tz = vim.g.unixtime_utils_config.timezone or tz
-  end
-  return tz or "local"
+  vim.notify("Invalid timezone: " .. tostring(tz) .. " (keeping previous)", vim.log.levels.ERROR)
+  return false
 end
 
 local function parse_offset(tz)
@@ -44,10 +42,9 @@ local function compute_local_utc_offset(epoch_local)
   return reconstructed - epoch_local
 end
 
--- Convert a unix epoch seconds (assumed UTC) to a human string in target timezone.
-function M.format_epoch(epoch_seconds, fmt, tz)
+function Timezone.format_epoch(epoch_seconds, fmt)
   fmt = fmt or "%Y-%m-%d %H:%M:%S"
-  tz = tz or extract_global_timezone()
+  local tz = config.timezone
   if tz == "local" then
     return os.date(fmt, epoch_seconds)
   end
@@ -63,14 +60,41 @@ function M.format_epoch(epoch_seconds, fmt, tz)
       return os.date(fmt, epoch_seconds) -- fallback
     end
   end
-  -- Adjust epoch from UTC to local; we need to account for Lua's os.date using local timezone.
-  -- os.date interprets given epoch as local, so to display target timezone we shift by (local_offset - target_offset)
   local adjusted = epoch_seconds + (local_offset - off)
   return os.date(fmt, adjusted)
 end
 
-function M.get_timezone()
-  return extract_global_timezone()
+function Timezone.resolve_epoch(d, m, y, H, M, S)
+  local tz = config.timezone
+  local local_epoch = os.time({ year = y, month = m, day = d, hour = H, min = M, sec = S })
+  if not local_epoch then
+    return nil, "os.time failed"
+  end
+  if tz == "local" then
+    return local_epoch
+  end
+  local offset_local = compute_local_utc_offset(local_epoch)
+  local epoch_utc = local_epoch - offset_local
+  if tz == "UTC" then
+    return epoch_utc
+  end
+  local fixed = parse_offset(tz)
+  if fixed then
+    return local_epoch - (offset_local - fixed)
+  end
+  return local_epoch
 end
 
-return M
+function Timezone.get_timezone()
+  return config.timezone
+end
+
+function Timezone.set_timezone(tz)
+  if validate_timezone(tz) then
+    config.set('timezone', tz)
+    return true
+  end
+  return false
+end
+
+return Timezone

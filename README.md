@@ -23,7 +23,8 @@ A Neovim plugin collection for working with Unix timestamps.
 - Persistent by default: annotations stay after moving the cursor; re-trigger on the same line updates that line.
 - To make it ephemeral (only one annotation at a time), set `persist = false` (then `clear_previous` governs whether all previous are cleared or just that line).
 
-## Installation
+## Installation (updated)
+
 
 **With a plugin manager (e.g., lazy.nvim):**
 ```lua
@@ -33,7 +34,7 @@ A Neovim plugin collection for working with Unix timestamps.
 }
 ```
 
-The on-demand feature auto-initializes with default keymap <leader>tt. Configure via global variables (no setup call) – see below. To disable keymaps set them to nil/false in globals.
+Use the Lua setup API. The on-demand feature auto-initializes with default keymaps; override them in setup. To disable a keymap set it to nil/false.
 
 ## Usage
 
@@ -45,55 +46,38 @@ The on-demand feature auto-initializes with default keymap <leader>tt. Configure
 - Place cursor on a Unix timestamp (seconds or milliseconds) in any buffer and press <leader>tt.
 - A human-readable date/time appears at the end of the line.
 - <leader>tr clears the annotation on the current line. <leader>tR clears all annotations in the buffer.
-- Configuration is via globals only (no setup function).
+- Configurable via setup() or direct config table mutation.
 
-### Global configuration (no setup call needed)
-Set globals before the plugin loads (e.g. in init.lua). Priority must be a non-negative number; lower draws first at end-of-line. To disable any keymap set its value to false or nil.
+### Configuration
+Configure early (e.g. in lazy.nvim spec) with:
 ```lua
--- Unified table
-vim.g.unixtime_utils = {
-  on_demand = {
-    priority = 0,
-    keymap = '<leader>tt',
-  },
-  csv = {
-    priority = 0,
-    highlight = 'Comment',
-  },
+require('unixtime_utils').setup({
+  timezone = 'local', -- 'local' | 'UTC' | '+HHMM' | '-HHMM'
   convert = {
     keymap = '<leader>tu',
-    timezone = 'local', -- 'local' | 'UTC' | '+HHMM' | '-HHMM'
     prompt = 'Enter date (DD.MM.YYYY [HH:MM[:SS]]):',
-    popup = {
-      highlight = 'UnixtimeUtilsFloat',
-      background = nil, -- e.g. '#1e1e2e' to define custom bg
-      winblend = 0,
-      show_timezone = true,
-    },
+    popup = { highlight = 'UnixTimeUtilsFloat', background = nil, winblend = 0, show_timezone = true },
   },
-}
+  cursor = {
+    format = '%Y-%m-%d %H:%M:%S',
+    keymaps = { show = '<leader>tt', clear = '<leader>tr', clear_all = '<leader>tR' },
+    persist = true,
+    accept_seconds = true,
+    accept_milliseconds = true,
+  },
+  csv = { highlight = 'Comment', priority = 0 },
+})
+```
+Disable a keymap by setting it to false or nil.
 
--- Or per-module flat tables
-vim.g.unixtime_utils_on_demand = {
-  priority = 0,
-  keymap = '<leader>tt',
-  clear_keymap = '<leader>tr',
-  clear_all_keymap = '<leader>tR',
-}
-vim.g.unixtime_utils_csv = { priority = 0 }
-vim.g.unixtime_utils_convert = {
-  keymap = '<leader>tu',
-  timezone = 'UTC',
-    popup = { background = '#1e1e2e', winblend = 10 }, -- highlight auto-applied if specified
-
-}
-
--- Alternative unified simple config (timezone override only)
-vim.g.unixtime_utils_config = { timezone = 'UTC' }
+Mutate config at runtime directly if needed:
+```lua
+local cfg = require('unixtime_utils.config')
+cfg.timezone = 'UTC'
 ```
 
 ### Timezone sharing across modules
-The `timezone` setting (in `convert` or via `vim.g.unixtime_utils_convert.timezone` / `vim.g.unixtime_utils_config.timezone`) is now honored by:
+The `timezone` setting is honored by:
 - Date->Unix popup conversion
 - On-demand cursor annotations
 - CSV virtual text annotations
@@ -104,16 +88,16 @@ Displayed human times:
 - Local omits suffix
 
 ### Runtime API
-Change timezone at runtime (affects next popup):
-```lua
-require('unixtime_utils.convert').set_timezone('UTC')
--- or offset
-require('unixtime_utils.convert').set_timezone('+0530')
-print(require('unixtime_utils.convert').get_timezone())
+Change timezone at runtime (affects all modules):
+```vim
+:UnixTimeSetTimezone UTC
 ```
-Reload config from globals (if you modified vim.g after load):
+Lua:
 ```lua
-require('unixtime_utils.convert').reload_config()
+local tz = require('unixtime_utils.timezone')
+tz.set_timezone('UTC')
+tz.set_timezone('+0530')
+print(tz.get_timezone())
 ```
 
 ## Example

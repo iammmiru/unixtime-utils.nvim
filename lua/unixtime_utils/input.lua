@@ -23,10 +23,10 @@ function M.open(opts)
   if opts.popup_config then
     local pc = opts.popup_config
     if pc.highlight then
-      pcall(vim.api.nvim_win_set_option, win, "winhl", "Normal:" .. pc.highlight .. ",NormalNC:" .. pc.highlight)
+      pcall(vim.api.nvim_set_option_value, "winhl", "Normal:" .. pc.highlight .. ",NormalNC:" .. pc.highlight, { win = win })
     end
     if type(pc.winblend) == "number" then
-      pcall(vim.api.nvim_win_set_option, win, "winblend", pc.winblend)
+      pcall(vim.api.nvim_set_option_value, "winblend", pc.winblend, { win = win })
     end
   end
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, { prompt, "" })

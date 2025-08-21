@@ -1,16 +1,7 @@
 local Cursor = {}
 
 local ns_id = vim.api.nvim_create_namespace("unixtime-on-demand")
-
-local config = {
-  format = "%Y-%m-%d %H:%M:%S", -- os.date format
-  highlight = "Comment", -- highlight group for virtual text
-  persist = true, -- keep annotations after moving cursor; pressing again updates only that line
-  keymap = "<leader>tt", -- default keymap
-  accept_seconds = true, -- allow 10-digit unix seconds
-  accept_milliseconds = true, -- allow 13-digit unix milliseconds
-  priority = 0, -- extmark priority (lower draws first)
-}
+local default_config = require("unixtime_utils.config").cursor
 
 local state = {
   marks_by_buf = {}, -- [bufnr] = { [line]=extmark_id }
@@ -33,7 +24,9 @@ local function parse_number_under_cursor()
     -- 1. Cursor is within the run (col between s0 and e0)
     -- 2. Or cursor is immediately after the run (col == e0 + 1)
     if (col >= s0 and col <= e0) or (col == e0 + 1) then
-      if (#digits == 10 and config.accept_seconds) or (#digits == 13 and config.accept_milliseconds) then
+      if
+        (#digits == 10 and default_config.accept_seconds) or (#digits == 13 and default_config.accept_milliseconds)
+      then
         target = { text = digits, start_col = s0, end_col = e0 + 1 }
         break
       end
@@ -53,13 +46,13 @@ local function parse_number_under_cursor()
 end
 
 local function normalize_epoch(num_str)
-  if #num_str == 13 and config.accept_milliseconds then
+  if #num_str == 13 and default_config.accept_milliseconds then
     local ok, val = pcall(tonumber, num_str)
     if not ok or not val then
       return nil
     end
     return math.floor(val / 1000)
-  elseif #num_str == 10 and config.accept_seconds then
+  elseif #num_str == 10 and default_config.accept_seconds then
     local ok, val = pcall(tonumber, num_str)
     if not ok or not val then
       return nil
@@ -79,9 +72,9 @@ function Cursor.show_at_cursor()
     if not epoch then
       return
     end
-    local tzmod = require("unixtime_utils.timezone")
-    local tz = tzmod.get_timezone()
-    local human = tzmod.format_epoch(epoch, config.format, tz)
+    local timezone = require("unixtime_utils.timezone")
+    local tz = timezone.get_timezone()
+    local human = timezone.format_epoch(epoch, default_config.format, tz)
     if tz ~= "local" then
       if tz == "UTC" then
         human = human .. "Z"
@@ -94,7 +87,7 @@ function Cursor.show_at_cursor()
 
     state.marks_by_buf[bufnr] = state.marks_by_buf[bufnr] or {}
 
-    if config.persist then
+    if default_config.persist then
       local existing = state.marks_by_buf[bufnr][line]
       if existing then
         pcall(vim.api.nvim_buf_del_extmark, bufnr, ns_id, existing)
@@ -106,9 +99,9 @@ function Cursor.show_at_cursor()
 
     local col = #data.line
     local id = vim.api.nvim_buf_set_extmark(bufnr, ns_id, line, col, {
-      virt_text = { { " ⏰ " .. human, config.highlight } },
+      virt_text = { { " ⏰ " .. human, default_config.highlight } },
       virt_text_pos = "eol",
-      priority = config.priority,
+      priority = default_config.priority,
     })
     state.marks_by_buf[bufnr][line] = id
   end)
@@ -130,42 +123,6 @@ function Cursor.clear_all()
   state.marks_by_buf[bufnr] = {}
 end
 
-local function merge_user_globals()
-  local function apply(tbl)
-    if type(tbl) ~= "table" then
-      return
-    end
-    for k, v in pairs(tbl) do
-      if k == "priority" then
-        if type(v) == "number" and v >= 0 then
-          config.priority = v
-        end
-      else
-        config[k] = v
-      end
-    end
-  end
-  if vim.g.unixtime_utils and type(vim.g.unixtime_utils.on_demand) == "table" then
-    apply(vim.g.unixtime_utils.on_demand)
-  end
-  if type(vim.g.unixtime_utils_on_demand) == "table" then
-    apply(vim.g.unixtime_utils_on_demand)
-  end
-end
-
--- merge globals immediately on load
-merge_user_globals()
-
--- Removed setup: configuration now via globals only.
--- Keymaps are created immediately below if enabled.
-
--- establish default clear keymaps if not set (allow explicit false/nil to disable)
-if config.clear_keymap == nil then
-  config.clear_keymap = "<leader>tr"
-end
-if config.clear_all_keymap == nil then
-  config.clear_all_keymap = "<leader>tR"
-end
 
 -- define keymaps immediately (no setup function anymore)
 local created_keymaps = false
@@ -173,18 +130,18 @@ local function create_keymaps()
   if created_keymaps then
     return
   end
-  if config.keymap then
-    vim.keymap.set("n", config.keymap, function()
+  if default_config.keymaps.show then
+    vim.keymap.set("n", default_config.keymaps.show, function()
       Cursor.show_at_cursor()
     end, { desc = "Show human-readable time for unix timestamp under cursor" })
   end
-  if config.clear_keymap then
-    vim.keymap.set("n", config.clear_keymap, function()
+  if default_config.keymaps.clear then
+    vim.keymap.set("n", default_config.keymaps.clear, function()
       Cursor.clear()
     end, { desc = "Clear on-demand unixtime annotation on current line" })
   end
-  if config.clear_all_keymap then
-    vim.keymap.set("n", config.clear_all_keymap, function()
+  if default_config.keymaps.clear_all then
+    vim.keymap.set("n", default_config.keymaps.clear_all, function()
       Cursor.clear_all()
     end, { desc = "Clear all on-demand unixtime annotations in buffer" })
   end

@@ -1,7 +1,7 @@
 -- Manual test script for unixtime_utils.convert timezone handling
 -- Run inside nvim: :lua dofile('lua/unixtime_utils/tests_convert.lua')
 
-local Convert = require("unixtime_utils.convert")
+local tzmod = require('unixtime_utils.timezone')
 
 local samples = {
   { input = "01.01.2025 00:00:00", tzs = { "local", "UTC", "+0000", "+0100", "-0500", "+0530" } },
@@ -15,29 +15,22 @@ local function parse(str)
 end
 
 local function compute_epoch(d, m, y, H, M, S, tz)
-  local ok = Convert.set_timezone(tz)
+  local ok = tzmod.set_timezone(tz)
   if not ok then
-    return nil, "bad tz"
+    return nil, 'bad tz'
   end
-  local f = loadstring(
-    string.format([[return require('unixtime_utils.convert')._debug_resolve(%d,%d,%d,%d,%d,%d)]], d, m, y, H, M, S)
-  )
-  if f then
-    return f()
-  end
+  -- replicate resolve_epoch logic through timezone module directly
+  return tzmod.resolve_epoch(d, m, y, H, M, S)
 end
 
--- Expose internal for debugging (monkey patch):
-if not Convert._debug_resolve then
-  local mt = getmetatable(Convert) or {}
-end
+-- (debug helper removed; using public API)
 
 print("Timezone test results:")
 for _, sample in ipairs(samples) do
   local d, m, y, H, M, S = parse(sample.input)
   if d then
     for _, tz in ipairs(sample.tzs) do
-      Convert.set_timezone(tz)
+      tzmod.set_timezone(tz)
       local epoch = (function()
         -- replicate resolve (private) via public API path
         local line = sample.input
@@ -55,7 +48,7 @@ for _, sample in ipairs(samples) do
           isdst = false,
         })
         local offset_local = reconstructed - local_epoch
-        local tzcur = Convert.get_timezone()
+        local tzcur = tzmod.get_timezone()
         if tzcur == "local" then
           return local_epoch
         end
